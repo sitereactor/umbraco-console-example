@@ -14,3 +14,6 @@ This is a very simple implementation so it currently only has 3 options:
 - List content nodes
 - Create new content
 - Create database schema
+
+
+PS: No WebContext is required
