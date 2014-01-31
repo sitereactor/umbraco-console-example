@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Data.SqlServerCe;
+using System.IO;
 using System.Linq;
 using Umbraco.Core;
 using Umbraco.Core.Persistence;
@@ -58,7 +60,7 @@ namespace UmbConsole
                 else if (string.IsNullOrEmpty(input) == false && input.ToLowerInvariant().Equals("c"))
                     CreateNewContent(contentService, contentTypeService);//Call the method that does the actual creation and saving of the Content object
                 else if (string.IsNullOrEmpty(input) == false && input.ToLowerInvariant().Equals("d"))
-                    CreateDatabaseSchema(database);
+                    CreateDatabaseSchema(database, databaseContext.DatabaseProvider, application.DataDirectory);
             }
         }
 
@@ -132,7 +134,9 @@ namespace UmbConsole
         /// Private method to install the umbraco database schema in an empty database
         /// </summary>
         /// <param name="database"></param>
-        private static void CreateDatabaseSchema(Database database)
+        /// <param name="databaseProvider"></param>
+        /// <param name="dataDirectory"></param>
+        private static void CreateDatabaseSchema(Database database, DatabaseProviders databaseProvider, string dataDirectory)
         {
             Console.WriteLine("Please note that installing the umbraco database schema requires an empty database configured in config.");
             Console.WriteLine("The 'umbracoConfigurationStatus' under appSettings should be left blank.");
@@ -144,9 +148,20 @@ namespace UmbConsole
             {
                 try
                 {
-                    database.CreateDatabaseSchema();
+                    if (databaseProvider == DatabaseProviders.SqlServerCE)
+                    {
+                        var dbPath = Path.Combine(dataDirectory, "Umbraco.sdf");
+                        if (File.Exists(dbPath) == false)
+                        {
+                            var engine = new SqlCeEngine(@"Data Source=|DataDirectory|\Umbraco.sdf;Flush Interval=1;");
+                            engine.CreateDatabase();
+                        }
+                    }
+
+                    database.CreateDatabaseSchema(false);
 
                     Console.WriteLine("The database schema has been installed");
+                    Console.WriteLine("Note: This is just an example, so no backoffice user has been created.");
                 }
                 catch (Exception e)
                 {
