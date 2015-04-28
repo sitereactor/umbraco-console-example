@@ -9,6 +9,9 @@ using Umbraco.Core.Services;
 namespace UmbConsole
 {
     /// <summary>
+    /// + + + + + + + + + + + + + + + + + + + +
+    /// +   Waahoooo!!! HAPPY BIRTHDAY!! :-)  +
+    /// + + + + + + + + + + + + + + + + + + + +
     /// Before running this console app please ensure that the "umbracoDbDSN" ConnectionString is pointing to your database.
     /// If you are using Sql Ce please replace "|DataDirectory|" with a real path or alternatively place 
     /// your database in the debug folder before running the application in debug mode.
