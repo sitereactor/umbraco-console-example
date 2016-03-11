@@ -2,6 +2,7 @@
 using System.Data.SqlServerCe;
 using System.IO;
 using System.Linq;
+using System.Security.Policy;
 using Umbraco.Core;
 using Umbraco.Core.Persistence;
 using Umbraco.Core.Services;
@@ -17,13 +18,28 @@ namespace UmbConsole
     {
         static void Main(string[] args)
         {
+            var umbracoDomain = AppDomain.CreateDomain(
+                "Umbraco",
+                new Evidence(),
+                new AppDomainSetup
+                {
+                    ApplicationBase = Environment.CurrentDirectory,
+                    PrivateBinPath = Path.Combine(Environment.CurrentDirectory, "bin"),
+                    ConfigurationFile = Path.Combine(Environment.CurrentDirectory, "web.config")
+                }
+            );
+            umbracoDomain.DoCallBack(RunUmbraco);
+        }
+
+        private static void RunUmbraco()
+        {
             Console.Title = "Umbraco Console";
 
             //Initialize the application
             var application = new ConsoleApplicationBase();
             application.Start(application, new EventArgs());
             Console.WriteLine("Application Started");
-            
+
             Console.WriteLine("--------------------");
             //Write status for ApplicationContext
             var context = ApplicationContext.Current;
@@ -50,17 +66,58 @@ namespace UmbConsole
                 Console.WriteLine("List content nodes: l");
                 Console.WriteLine("Create new content: c");
                 Console.WriteLine("Create Umbraco database schema in empty db: d");
+                Console.WriteLine("Execute type :e");
                 Console.WriteLine("Quit application: q");
 
                 var input = Console.ReadLine();
                 if (string.IsNullOrEmpty(input) == false && input.ToLowerInvariant().Equals("q"))
-                    waitOrBreak = false;//Quit the application
+                    waitOrBreak = false; //Quit the application
                 else if (string.IsNullOrEmpty(input) == false && input.ToLowerInvariant().Equals("l"))
-                    ListContentNodes(contentService);//Call the method that lists all the content nodes
+                    ListContentNodes(contentService); //Call the method that lists all the content nodes
                 else if (string.IsNullOrEmpty(input) == false && input.ToLowerInvariant().Equals("c"))
-                    CreateNewContent(contentService, contentTypeService);//Call the method that does the actual creation and saving of the Content object
+                    CreateNewContent(contentService, contentTypeService);
+                        //Call the method that does the actual creation and saving of the Content object
                 else if (string.IsNullOrEmpty(input) == false && input.ToLowerInvariant().Equals("d"))
                     CreateDatabaseSchema(database, databaseContext.DatabaseProvider, application.DataDirectory);
+                else if (string.IsNullOrEmpty(input) == false && input.ToLowerInvariant().Equals("e"))
+                    ExcuteType(context);
+            }
+        }
+
+        private static void ExcuteType(ApplicationContext context)
+        {
+            Console.WriteLine("Enter typename:");
+            var typeName = Console.ReadLine();
+            var type = Type.GetType(typeName ?? "");
+            if (type == null)
+            {
+                Console.WriteLine("Couldn't instantiate type '{0}'", typeName);
+                return;
+            }
+
+            var ctor = type.GetConstructor(new Type[0]);
+            if (ctor == null)
+            {
+                Console.WriteLine("Couldn't find public parameterless constructor for type '{0}'", typeName);
+                return;
+            }
+
+            var executeMethod = type.GetMethod("Execute", new[] {typeof(ApplicationContext)});
+            if (executeMethod == null)
+            {
+                Console.WriteLine("The type '{0}' does not implement method 'Execute(ApplicationContext)'", typeName);
+                return;
+            }
+
+            try
+            {
+                var instance = ctor.Invoke(new object[0]);
+                executeMethod.Invoke(instance, new object[] {context});
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Failed to execute:");
+                Console.WriteLine(ex);
             }
         }
 
