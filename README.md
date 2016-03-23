@@ -1,3 +1,12 @@
+## Addition to core project
+
+Runs from site root folder. Creates appdomain with Umbraco.  
+Commandline argument for fully qualified name of class implementing following contract:  
+`public void Execute(Umbraco.Core.ApplicationContext context)`  
+or run option 'e' and enter the classname.
+
+## Core project readme
+
 Umbraco 6 + 7 Console Example
 =======================
 

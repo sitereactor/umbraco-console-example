@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data.SqlServerCe;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Policy;
@@ -28,6 +29,8 @@ namespace UmbConsole
                     ConfigurationFile = Path.Combine(Environment.CurrentDirectory, "web.config")
                 }
             );
+            umbracoDomain.SetData("args", args);
+
             umbracoDomain.DoCallBack(RunUmbraco);
         }
 
@@ -57,6 +60,17 @@ namespace UmbConsole
             var contentService = serviceContext.ContentService;
             var contentTypeService = serviceContext.ContentTypeService;
 
+
+            var args = AppDomain.CurrentDomain.GetData("args") as string[];
+            var executeTypeName = "";
+            if (args != null && args.Length > 0)
+                executeTypeName = args[0];
+            if (!String.IsNullOrWhiteSpace(executeTypeName))
+            {
+                ExecuteType(context, executeTypeName);
+                return;
+            }
+
             //Exit the application?
             var waitOrBreak = true;
             while (waitOrBreak)
@@ -80,14 +94,21 @@ namespace UmbConsole
                 else if (string.IsNullOrEmpty(input) == false && input.ToLowerInvariant().Equals("d"))
                     CreateDatabaseSchema(database, databaseContext.DatabaseProvider, application.DataDirectory);
                 else if (string.IsNullOrEmpty(input) == false && input.ToLowerInvariant().Equals("e"))
-                    ExcuteType(context);
+                    ExecuteType(context);
             }
         }
 
-        private static void ExcuteType(ApplicationContext context)
+        private static void ExecuteType(ApplicationContext context, string typeName = null)
         {
-            Console.WriteLine("Enter typename:");
-            var typeName = Console.ReadLine();
+            if (String.IsNullOrWhiteSpace(typeName))
+            {
+                Console.WriteLine("Enter typename:");
+                typeName = Console.ReadLine();
+            }
+            else
+            {
+                Console.WriteLine("Executing " + typeName);
+            }
             var type = Type.GetType(typeName ?? "");
             if (type == null)
             {
