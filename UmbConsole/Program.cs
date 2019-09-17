@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.SqlServerCe;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Management.Automation;
+using System.Management.Automation.Runspaces;
 using System.Reflection;
 using System.Security.Policy;
-using umbraco.cms.businesslogic.packager;
 using Umbraco.Core;
 using Umbraco.Core.Persistence;
-using Umbraco.Core.Services;
 
 namespace UmbConsole
 {
@@ -29,6 +28,11 @@ namespace UmbConsole
             Console.WriteLine("Hanging to debug");
             Console.ReadKey(true);
 
+            CreateAndRunDomain(args);
+        }
+
+        private static void CreateAndRunDomain(string[] args)
+        {
             var umbracoDomain = AppDomain.CreateDomain(
                 "Umbraco",
                 new Evidence(),
@@ -132,7 +136,9 @@ namespace UmbConsole
                     return;
                 }
 
-                MainLoop(context);
+                //PSLoop();
+
+                //MainLoop(context);
             }
             catch
             {
@@ -140,6 +146,93 @@ namespace UmbConsole
                 throw;
             }
         }
+
+        private static void Output<T>(object collection, DataAddedEventArgs args)
+        {
+            var dataCollection = (PSDataCollection<T>) collection;
+            var value = dataCollection.Last();
+            Console.WriteLine(value);
+        }
+
+        private static void PSLoop()
+        {
+
+            using (Runspace rs = RunspaceFactory.CreateRunspace())
+            {
+                rs.Open();
+                
+                rs.SessionStateProxy.SetVariable("applicationContext", ApplicationContext.Current);
+                rs.SessionStateProxy.SetVariable("greeting", "Hi there from C#!");
+
+                using (var shell = PowerShell.Create())
+                {
+                    shell.Streams.Debug.DataAdded += Output<DebugRecord>;
+                    shell.Streams.Error.DataAdded += Output<ErrorRecord>;
+                    shell.Streams.Information.DataAdded += Output<InformationRecord>;
+                    shell.Streams.Progress.DataAdded += Output<ProgressRecord>;
+                    shell.Streams.Verbose.DataAdded += Output<VerboseRecord>;
+                    shell.Streams.Warning.DataAdded += Output<WarningRecord>;
+
+                    //var variable = new PSVariable("applicationContext", ApplicationContext.Current);
+                    //var variable2 = new PSVariable("greeting", "Hi there!");
+                    //var variable3 = new PSVariable("$greeting", "Hi there $!");
+
+                    //shell.AddParameter("$applicationContext", ApplicationContext.Current);
+                    while (true)
+                    {
+                        Console.Write("> ");
+                        var input = Console.ReadLine();
+
+                        if (input == "q" || input == "quit")
+                        {
+                            break;
+                        }
+
+                        shell.AddScript(input);
+                        var result = shell.Invoke();
+                    }
+                }
+
+                rs.Close();
+            }
+        }
+
+        //private static bool shouldExit = false;
+
+        //public class CanIBeHost : PSHost
+        //{
+        //    public override void SetShouldExit(int exitCode)
+        //    {
+        //        shouldExit = true;
+        //    }
+
+        //    public override void EnterNestedPrompt()
+        //    {
+        //        throw new NotImplementedException();
+        //    }
+
+        //    public override void ExitNestedPrompt()
+        //    {
+        //        throw new NotImplementedException();
+        //    }
+
+        //    public override void NotifyBeginApplication()
+        //    {
+        //        throw new NotImplementedException();
+        //    }
+
+        //    public override void NotifyEndApplication()
+        //    {
+        //        throw new NotImplementedException();
+        //    }
+
+        //    public override string Name => "Whoah" 
+        //    public override Version Version => new Version(1, 0);
+        //    public override Guid InstanceId => new Guid("9A0D85D7-914C-4EE6-AC78-9FA493577E22");
+        //    public override PSHostUserInterface UI => null;
+        //    public override CultureInfo CurrentCulture { get; }
+        //    public override CultureInfo CurrentUICulture { get; }
+        //}
 
         private static void MainLoop(ApplicationContext context)
         {
