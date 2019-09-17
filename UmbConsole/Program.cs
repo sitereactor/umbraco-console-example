@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data.SqlServerCe;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Security.Policy;
+using umbraco.cms.businesslogic.packager;
 using Umbraco.Core;
 using Umbraco.Core.Persistence;
 using Umbraco.Core.Services;
@@ -17,61 +20,130 @@ namespace UmbConsole
     /// </summary>
     class Program
     {
+        private static string toolPath = AppDomain.CurrentDomain.BaseDirectory;
+        private static Dictionary<string, Assembly> environmentAssemblies = null;
+        private static ConsoleApplicationBase Application;
+
         static void Main(string[] args)
         {
+            Console.WriteLine("Hanging to debug");
+            Console.ReadKey(true);
+
             var umbracoDomain = AppDomain.CreateDomain(
                 "Umbraco",
                 new Evidence(),
                 new AppDomainSetup
                 {
-                    ApplicationBase = Environment.CurrentDirectory,
-                    PrivateBinPath = Path.Combine(Environment.CurrentDirectory, "bin"),
+                    //ApplicationBase = Environment.CurrentDirectory,
+                    //PrivateBinPath = Path.Combine(Environment.CurrentDirectory, "bin"),
+                    //PrivateBinPathProbe = "NonNullToOnlyUsePrivateBin",
                     ConfigurationFile = Path.Combine(Environment.CurrentDirectory, "web.config")
                 }
             );
             umbracoDomain.SetData("args", args);
+            umbracoDomain.SetData(".appPath", Environment.CurrentDirectory);
+
+            //var assembly = File.ReadAllBytes(Path.Combine(toolPath, "UmbConsole.exe"));
+            //umbracoDomain.Load(assembly);
+
+            //umbracoDomain.AssemblyLoad += (sender, eventArgs) => { return; };
+            umbracoDomain.AssemblyResolve += AssemblyResolve;
 
             umbracoDomain.DoCallBack(RunUmbraco);
+        }
+
+        private static Assembly AssemblyResolve(object sender, ResolveEventArgs args)
+        {
+            try
+            {
+                var assemblyName = args.Name;
+
+                var probeFolder = Path.Combine(Environment.CurrentDirectory, "bin");
+
+                var currentDomain = AppDomain.CurrentDomain;
+                if (environmentAssemblies == null)
+                {
+                    var allLoadedAssemblies = currentDomain.GetAssemblies().Where(x => !x.IsDynamic);
+                    var loadedAssemblyFileNames = allLoadedAssemblies
+                        .Select(x => {
+                            try
+                            {
+                                return x.Location.Substring(x.Location.LastIndexOf(@"\") + 1);
+                            }
+                            catch
+                            {
+                                throw;
+                            }
+                        })
+                        .ToArray();
+
+                    var allEnvironmentAssemblyFiles = Directory.GetFiles(probeFolder)
+                        .Where(x => x.EndsWith(".dll") || x.EndsWith(".exe"))
+                        .ToArray();
+
+                    var notLoadedEnvironmentAssemblies = allEnvironmentAssemblyFiles
+                        .Where(x => !loadedAssemblyFileNames.Any(x.EndsWith))
+                        .ToArray();
+
+                    environmentAssemblies = notLoadedEnvironmentAssemblies
+                        .Select(Assembly.LoadFrom)
+                        .ToDictionary(x => x.GetName().FullName, x => x);
+                }
+
+                var isMatchedFullName = environmentAssemblies.ContainsKey(assemblyName);
+                if (!isMatchedFullName)
+                {
+                    var fromSimpleName =
+                        environmentAssemblies.Keys.FirstOrDefault(x => x.StartsWith(assemblyName + ","));
+                    if (!String.IsNullOrEmpty(fromSimpleName))
+                    {
+                        assemblyName = fromSimpleName;
+                        isMatchedFullName = true;
+                    }
+                }
+
+                if (isMatchedFullName)
+                {
+                    return environmentAssemblies[assemblyName];
+                }
+
+                return null;
+            }
+            catch
+            {
+                throw;
+            }
         }
 
         private static void RunUmbraco()
         {
             Console.Title = "Umbraco Console";
 
-            //Initialize the application
-            var application = new ConsoleApplicationBase();
-            application.Start(application, new EventArgs());
-            Console.WriteLine("Application Started");
+            Assembly.Load("Examine");
+            Assembly.Load("Lucene.Net");
 
-            Console.WriteLine("--------------------");
-            //Write status for ApplicationContext
-            var context = ApplicationContext.Current;
-            Console.WriteLine("ApplicationContext is available: " + (context != null).ToString());
-            //Write status for DatabaseContext
-            var databaseContext = context.DatabaseContext;
-            Console.WriteLine("DatabaseContext is available: " + (databaseContext != null).ToString());
-            //Write status for Database object
-            var database = databaseContext.Database;
-            Console.WriteLine("Database is available: " + (database != null).ToString());
-            Console.WriteLine("--------------------");
-
-            //Get the ServiceContext and the two services we are going to use
-            var serviceContext = context.Services;
-            var contentService = serviceContext.ContentService;
-            var contentTypeService = serviceContext.ContentTypeService;
-
-
-            var args = AppDomain.CurrentDomain.GetData("args") as string[];
-            var executeTypeName = "";
-            if (args != null && args.Length > 0)
-                executeTypeName = args[0];
-            if (!String.IsNullOrWhiteSpace(executeTypeName))
+            try
             {
-                ExecuteType(context, executeTypeName);
-                return;
-            }
+                //Initialize the application
+                var context = InitializeApplication();
 
-            //Exit the application?
+                if (ExecuteTypeIfSpecified(context))
+                {
+                    return;
+                }
+
+                MainLoop(context);
+            }
+            catch
+            {
+                // here to debug within domain
+                throw;
+            }
+        }
+
+        private static void MainLoop(ApplicationContext context)
+        {
+//Exit the application?
             var waitOrBreak = true;
             while (waitOrBreak)
             {
@@ -87,15 +159,51 @@ namespace UmbConsole
                 if (string.IsNullOrEmpty(input) == false && input.ToLowerInvariant().Equals("q"))
                     waitOrBreak = false; //Quit the application
                 else if (string.IsNullOrEmpty(input) == false && input.ToLowerInvariant().Equals("l"))
-                    ListContentNodes(contentService); //Call the method that lists all the content nodes
+                    ListContentNodes(); //Call the method that lists all the content nodes
                 else if (string.IsNullOrEmpty(input) == false && input.ToLowerInvariant().Equals("c"))
-                    CreateNewContent(contentService, contentTypeService);
-                        //Call the method that does the actual creation and saving of the Content object
+                    CreateNewContent();
+                //Call the method that does the actual creation and saving of the Content object
                 else if (string.IsNullOrEmpty(input) == false && input.ToLowerInvariant().Equals("d"))
-                    CreateDatabaseSchema(database, databaseContext.DatabaseProvider, application.DataDirectory);
+                    CreateDatabaseSchema();
                 else if (string.IsNullOrEmpty(input) == false && input.ToLowerInvariant().Equals("e"))
                     ExecuteType(context);
             }
+        }
+
+        private static bool ExecuteTypeIfSpecified(ApplicationContext context)
+        {
+            var args = AppDomain.CurrentDomain.GetData("args") as string[];
+            var executeTypeName = "";
+            if (args != null && args.Length > 0)
+                executeTypeName = args[0];
+            if (!String.IsNullOrWhiteSpace(executeTypeName))
+            {
+                ExecuteType(context, executeTypeName);
+                return true;
+            }
+
+            return false;
+        }
+
+        private static ApplicationContext InitializeApplication()
+        {
+            Application = new ConsoleApplicationBase();
+            Application.Start(Application, new EventArgs());
+            Console.WriteLine("Application Started");
+
+            var context = ApplicationContext.Current;
+            var databaseContext = context.DatabaseContext;
+            var database = databaseContext.Database;
+
+            Console.WriteLine("--------------------");
+            //Write status for ApplicationContext
+            Console.WriteLine("ApplicationContext is available: " + (context != null).ToString());
+            //Write status for DatabaseContext
+            Console.WriteLine("DatabaseContext is available: " + (databaseContext != null).ToString());
+            //Write status for Database object
+            Console.WriteLine("Database is available: " + (database != null).ToString());
+            Console.WriteLine("--------------------");
+            return context;
         }
 
         private static void ExecuteType(ApplicationContext context, string typeName = null)
@@ -146,8 +254,10 @@ namespace UmbConsole
         /// Private method to list all content nodes
         /// </summary>
         /// <param name="contentService"></param>
-        private static void ListContentNodes(IContentService contentService)
+        private static void ListContentNodes()
         {
+            var contentService = ApplicationContext.Current.Services.ContentService;
+
             //Get the Root Content
             var rootContent = contentService.GetRootContent();
             foreach (var content in rootContent)
@@ -167,8 +277,12 @@ namespace UmbConsole
         /// </summary>
         /// <param name="contentService"></param>
         /// <param name="contentTypeService"></param>
-        private static void CreateNewContent(IContentService contentService, IContentTypeService contentTypeService)
+        private static void CreateNewContent()
         {
+            var contentService = ApplicationContext.Current.Services.ContentService;
+            var contentTypeService = ApplicationContext.Current.Services.ContentTypeService;
+
+
             //We find all ContentTypes so we can show a nice list of everything that is available
             var contentTypes = contentTypeService.GetAllContentTypes();
             var contentTypeAliases = string.Join(", ", contentTypes.Select(x => x.Alias));
@@ -214,12 +328,18 @@ namespace UmbConsole
         /// <param name="database"></param>
         /// <param name="databaseProvider"></param>
         /// <param name="dataDirectory"></param>
-        private static void CreateDatabaseSchema(Database database, DatabaseProviders databaseProvider, string dataDirectory)
+        private static void CreateDatabaseSchema()
         {
             Console.WriteLine("Please note that installing the umbraco database schema requires an empty database configured in config.");
             Console.WriteLine("The 'umbracoConfigurationStatus' under appSettings should be left blank.");
             Console.WriteLine("If you are using Sql Ce an empty Umbraco.sdf file should exist in the DataDictionary.");
             Console.WriteLine("Press y to continue");
+
+            var context = ApplicationContext.Current;
+            var databaseContext = context.DatabaseContext;
+            var database = databaseContext.Database;
+            var databaseProvider = database.GetDatabaseProvider();
+            var dataDirectory = Application.DataDirectory;
 
             var input = Console.ReadLine();
             if (string.IsNullOrEmpty(input) == false && input.ToLowerInvariant().Equals("y"))
