@@ -250,8 +250,12 @@
   <ItemGroup>
     <Compile Include="ConsoleApplicationBase.cs" />
     <Compile Include="ConsoleBootManager.cs" />
+    <Compile Include="MyHost.cs" />
+    <Compile Include="MyHostUserInterface.cs" />
+    <Compile Include="MyRawUserInterface.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="PSListenerConsoleSample.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

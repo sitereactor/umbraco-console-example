@@ -131,12 +131,12 @@ namespace UmbConsole
                 //Initialize the application
                 var context = InitializeApplication();
 
-                if (ExecuteTypeIfSpecified(context))
-                {
-                    return;
-                }
+                //if (ExecuteTypeIfSpecified(context))
+                //{
+                //    return;
+                //}
 
-                //PSLoop();
+                PSLoop();
 
                 //MainLoop(context);
             }
@@ -155,6 +155,12 @@ namespace UmbConsole
         }
 
         private static void PSLoop()
+        {
+            var listener = new PSListenerConsoleSample();
+            listener.Run();
+        }
+
+        private static void OldPSLoop()
         {
 
             using (Runspace rs = RunspaceFactory.CreateRunspace())
