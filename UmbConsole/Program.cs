@@ -26,9 +26,6 @@ namespace UmbConsole
 
         static void Main(string[] args)
         {
-            Console.WriteLine("Hanging to debug");
-            Console.ReadKey(true);
-
             CreateAndRunDomain(args);
         }
 
@@ -172,6 +169,16 @@ namespace UmbConsole
 
         private static void PSLoop()
         {
+            Console.Title = "Umbraco PowerShell";
+            ConsoleColor oldFg = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine("Umbraco PowerShell");
+            Console.WriteLine("=====================================");
+            Console.WriteLine(string.Empty);
+            Console.WriteLine("Welcome to Umbraco PowerShell! ");
+            Console.WriteLine("Type 'exit' to exit.");
+            Console.WriteLine(string.Empty);
+
             var listener = new PSListenerConsoleSample();
             listener.Run();
         }
