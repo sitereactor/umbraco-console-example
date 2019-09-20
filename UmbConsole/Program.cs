@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.SqlServerCe;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
@@ -53,7 +54,14 @@ namespace UmbConsole
             //umbracoDomain.AssemblyLoad += (sender, eventArgs) => { return; };
             umbracoDomain.AssemblyResolve += AssemblyResolve;
 
-            umbracoDomain.DoCallBack(RunUmbraco);
+            try
+            {
+                umbracoDomain.DoCallBack(RunUmbraco);
+            }
+            catch(Exception ex)
+            {
+                throw new Exception("Could not boot Umbraco. Likely not an Umbraco folder, or assemblies need to be eagerly loaded. Pass assemblies as arguments.", ex);
+            }
         }
 
         private static Assembly AssemblyResolve(object sender, ResolveEventArgs args)
@@ -111,6 +119,8 @@ namespace UmbConsole
                     return environmentAssemblies[assemblyName];
                 }
 
+                Debug.WriteLine("Couldn't find " + assemblyName);
+
                 return null;
             }
             catch
@@ -123,8 +133,14 @@ namespace UmbConsole
         {
             Console.Title = "Umbraco Console";
 
-            Assembly.Load("Examine");
-            Assembly.Load("Lucene.Net");
+            var assembliesToLoad = (string[])AppDomain.CurrentDomain.GetData("args");
+            foreach (var assembly in assembliesToLoad)
+            {
+                Assembly.Load(assembly);
+            }
+            //Assembly.Load("Examine");
+            //Assembly.Load("Lucene.Net");
+            //Assembly.Load("Umbraco.Forms.Web");
 
             try
             {
