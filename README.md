@@ -1,3 +1,27 @@
+﻿
+
+## Powershell
+
+This project is on the verge of becoming a nice little powershell CLI hosting Umbraco so
+the APIs can be used, and basically work as a master "backoffice.
+
+It has trouble going through HttpRuntime and HostingEnvironment, so several path
+resolving mechanisms etc. will fail.
+
+Non physical FileSystem providers mess up a bit.
+
+To get it working with the current version, an assembly list have to passed for eager
+loading of assemblies as well.
+
+    umbraco-cli.exe Examine Lucene.Net Umbraco.Forms.Web Our.Umbraco.FileSystemProviders.Azure
+
+Disable non-physical file system providers temporarily when running it.
+
+Help with getting this do have the right app domain data and getting a stubbed
+HostingEnvironment up and running would be appreciated. 👼
+
+---
+
 ## Addition to core project
 
 Runs from site root folder. Creates appdomain with Umbraco.  

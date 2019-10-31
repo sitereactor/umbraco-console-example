@@ -8,6 +8,8 @@ using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using System.Reflection;
 using System.Security.Policy;
+using System.Web;
+using System.Web.Hosting;
 using Umbraco.Core;
 using Umbraco.Core.Persistence;
 
@@ -43,7 +45,14 @@ namespace UmbConsole
                 }
             );
             umbracoDomain.SetData("args", args);
+            //umbracoDomain.SetData(".appId", "1");
+            //umbracoDomain.SetData(".domainId", "1");
+            //umbracoDomain.SetData(".appDomain", "Umbraco");
             umbracoDomain.SetData(".appPath", Environment.CurrentDirectory);
+            //umbracoDomain.SetData(".appVPath", "/");
+
+            //AppDomain.CurrentDomain.SetData(".appPath", Environment.CurrentDirectory);
+            //AppDomain.CurrentDomain.SetData(".appVPath", "/");
 
             //var assembly = File.ReadAllBytes(Path.Combine(toolPath, "UmbConsole.exe"));
             //umbracoDomain.Load(assembly);
@@ -130,6 +139,7 @@ namespace UmbConsole
         {
             Console.Title = "Umbraco Console";
 
+
             var assembliesToLoad = (string[])AppDomain.CurrentDomain.GetData("args");
             foreach (var assembly in assembliesToLoad)
             {
@@ -141,6 +151,8 @@ namespace UmbConsole
 
             try
             {
+                //new HostingEnvironment();
+
                 //Initialize the application
                 var context = InitializeApplication();
 
