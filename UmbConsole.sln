@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29215.179
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UmbConsole", "UmbConsole\UmbConsole.csproj", "{348CA314-DA08-474E-A236-173F82236EE2}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{07549C10-E1D1-42DB-957B-C0FC3EA31610}"
@@ -9,6 +11,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{07549C
 		.nuget\NuGet.exe = .nuget\NuGet.exe
 		.nuget\NuGet.targets = .nuget\NuGet.targets
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Our.Umbraco.Community.PowerShellModule", "Our.Umbraco.Community.PowerShellModule\Our.Umbraco.Community.PowerShellModule.csproj", "{AB6CFB7E-E88F-47F3-87FC-DA761C585032}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -20,8 +24,15 @@ Global
 		{348CA314-DA08-474E-A236-173F82236EE2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{348CA314-DA08-474E-A236-173F82236EE2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{348CA314-DA08-474E-A236-173F82236EE2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AB6CFB7E-E88F-47F3-87FC-DA761C585032}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AB6CFB7E-E88F-47F3-87FC-DA761C585032}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AB6CFB7E-E88F-47F3-87FC-DA761C585032}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AB6CFB7E-E88F-47F3-87FC-DA761C585032}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AA963575-45D1-4061-BA97-0B70039617BF}
 	EndGlobalSection
 EndGlobal

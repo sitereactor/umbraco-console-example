@@ -1,6 +1,7 @@
 ﻿using Umbraco.Core;
 using umbraco.editorControls;
 using umbraco.interfaces;
+using Umbraco.Web.Routing;
 
 namespace UmbConsole
 {

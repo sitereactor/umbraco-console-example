@@ -15,10 +15,10 @@ namespace UmbConsole
 
         protected override IBootManager GetBootManager()
         {
-            var binDirectory = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);
+            var binDirectory = new DirectoryInfo(Path.Combine(Environment.CurrentDirectory, "bin"));
             BaseDirectory = ResolveBasePath(binDirectory);
             DataDirectory = Path.Combine(BaseDirectory, "app_data");
-            var appDomainConfigPath = new DirectoryInfo(Path.Combine(binDirectory.FullName, "config"));
+            var appDomainConfigPath = new DirectoryInfo(Path.Combine(BaseDirectory, "config"));
 
             //Copy config files to AppDomain's base directory
             if (binDirectory.FullName.Equals(BaseDirectory) == false &&
